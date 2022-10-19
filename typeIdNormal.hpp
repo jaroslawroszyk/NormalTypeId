@@ -1,24 +1,23 @@
 #pragma once
 
-// #include <iostream>
 #include <optional>
-// #include <stdio.h>
-// #include <string>
-// #include <typeinfo>
- //todo: use fmt :)
+#include <string>
+#include <typeinfo>
+#include <fmt/core.h>
+
 struct demangler
 {
 protected:
-    std::optional<std::string> demangle(const char *);
+    static auto demangle(const char *) -> std::optional<std::string>;
     std::optional<std::string> demangled;
 };
 
 #if __has_include(<cxxabi.h>)
 #include <cxxabi.h>
-std::optional<std::string> demangler::demangle(const char *mangled)
+auto demangler::demangle(const char *mangled) -> std::optional<std::string>
 {
     int status = 0;
-    std::string demangled;
+    std::string demangled{};
     char *tmp = abi::__cxa_demangle(mangled, 0, 0, &status);
     switch (status)
     {
@@ -27,13 +26,13 @@ std::optional<std::string> demangler::demangle(const char *mangled)
         free(tmp);
         return demangled;
     case -1:
-        printf("Memory allocation failed for %s.\n", mangled);
+        fmt::print("Memory allocation failed for {}", mangled);
         return {};
     case -2:
-        printf("%s is an invalid name under ABI.\n", mangled);
+        fmt::print("is an invalid name under ABI. {}", mangled);
         return {};
     default:
-        printf("Fatal error occured demangling %s.\n", mangled);
+        fmt::print("Fatal error occured during demangling", mangled);
         return {};
     }
 }
@@ -44,11 +43,11 @@ std::optional<std::string> demangler::demangle(const char *mangled)
 }
 #endif
 
-struct stypeid final : demangler
+struct specialTypeid final : private demangler
 {
     template <typename T>
-    stypeid(T &&t) { this->demangled = demangle(typeid(t).name()); };
+    specialTypeid(T &&t) { this->demangled = demangle(typeid(t).name()); };
     std::string name() { return this->demangled.value_or("(null)"); }
     std::string name() const { return this->demangled.value_or("(null)"); }
-    friend std::ostream &operator<<(std::ostream &os, const stypeid id) { return os << id.name(); }
+    friend std::ostream &operator<<(std::ostream &os, const specialTypeid &id) { return os << id.name(); }
 };
