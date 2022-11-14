@@ -4,21 +4,21 @@
 #include <string>
 #include <typeinfo>
 #include <fmt/core.h>
+#include <cxxabi.h>
 
 struct demangler
 {
 protected:
-    static auto demangle(const char *) -> std::optional<std::string>;
+    static auto demangle(const char*) -> std::optional<std::string>;
+
     std::optional<std::string> demangled;
 };
 
-#if __has_include(<cxxabi.h>)
-#include <cxxabi.h>
-auto demangler::demangle(const char *mangled) -> std::optional<std::string>
+auto demangler::demangle(const char* mangled) -> std::optional<std::string>
 {
     int status = 0;
-    std::string demangled{};
-    char *tmp = abi::__cxa_demangle(mangled, 0, 0, &status);
+    std::string demangled {};
+    char* tmp = abi::__cxa_demangle(mangled, 0, 0, &status);
     switch (status)
     {
     case 0:
@@ -36,18 +36,15 @@ auto demangler::demangle(const char *mangled) -> std::optional<std::string>
         return {};
     }
 }
-#else
-std::optional<std::string> demangler::demangle(const char *mangled)
-{
-    return std::string{mangled};
-}
-#endif
 
 struct specialTypeid final : private demangler
 {
-    template <typename T>
+    template<typename T>
     specialTypeid(T &&t) { this->demangled = demangle(typeid(t).name()); };
+
     std::string name() { return this->demangled.value_or("(null)"); }
+
     std::string name() const { return this->demangled.value_or("(null)"); }
+
     friend std::ostream &operator<<(std::ostream &os, const specialTypeid &id) { return os << id.name(); }
 };
